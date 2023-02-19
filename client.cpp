@@ -21,15 +21,13 @@ int main(int argc, char *argv[]) {
     struct hostent *hp;
     char buf[BUFSIZ+1];
     char *host;
-    char *dados;
 
-    if (argc != 4) {
+    if (argc != 3) {
         std::cerr << "Uso correto: cliente <nome-servidor> <porta> <dados>\n";
         exit(1);
     }
 
     host = argv[1];
-    dados = argv[3];
 
     if ((hp = gethostbyname(host)) == NULL) {
         std::cerr << "Não consegui obter o endereço IP do servidor\n";
@@ -46,19 +44,15 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (sendto(sockdescr, dados, strlen(dados), 0, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
-        std::cerr << "Não consegui fazer a transmissão \n";
-        exit(1);
+    for (unsigned int i = 0; i <= 4294967295; i++) {
+        std::string dadosStr = std::to_string(i);
+        const char * dados = dadosStr.c_str();
+        if (sendto(sockdescr, dados, strlen(dados), 0, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+            std::cerr << "Não consegui fazer a transmissão \n";
+            exit(1);
+        }
+        std::cout << "Enviando pacote " << i << "\n";
     }
-
-    socklen_t slen = sizeof(sa);
-    if ((numbytesrecv = recvfrom(sockdescr, buf, BUFSIZ, 0, (struct sockaddr *) &sa, &slen)) < 0) {
-        std::cerr << "Não consegui receber a resposta \n";
-        exit(1);
-    }
-
-    buf[numbytesrecv] = '\0';
-    std::cout << "Cliente recebeu: " << buf << "\n";
 
     close(sockdescr);
 

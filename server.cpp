@@ -13,8 +13,9 @@ Ultima atualizacao: 18/02/2023
 #include <netinet/in.h>
 #include <unistd.h>
 #include <netdb.h> // sistema DNS
+#include <list>
+#include <algorithm>
 
-#define TAMFILA 5
 #define MAXHOSTNAME 30
 
 int main(int argc, char *argv[]) {
@@ -51,15 +52,41 @@ int main(int argc, char *argv[]) {
         std::cerr << "Não consegui fazer o bind\n";
         exit(1);
     }
+    unsigned int esperado = 0;
+    int pacotesRecebidos = 0;
+    int pacotesPerdidos = 0;
+    int pacotesForaDeOrdem = 0;
+    std::list<unsigned int> perdidos;
 
     while (true) {
+        memset(buf, 0, BUFSIZ+1);
         socklen_t isa_len = sizeof(isa);
         if (recvfrom(sock_escuta, buf, BUFSIZ, 0, (struct sockaddr *)&isa, &isa_len) < 0) {
             std::cerr << "Não consegui receber a mensagem\n";
             exit(1);
         }
-        std::cout << "Sou o servidor, recebi " << buf << "\n";
-        sendto(sock_escuta, buf, BUFSIZ, 0, (struct sockaddr *)&isa, isa_len);
+        unsigned int recebido = atoi(buf);
+        if (recebido != esperado) {
+            if (std::find(perdidos.begin(), perdidos.end(), recebido) != perdidos.end()) {
+                perdidos.remove(esperado);
+                pacotesPerdidos--;
+                pacotesForaDeOrdem++;
+            }
+            else {
+                for (int i = esperado; i < recebido; i++) {
+                    perdidos.push_back(i);
+                    pacotesPerdidos++;
+                }
+            }
+            esperado = recebido + 1;
+        }
+        else {
+            pacotesRecebidos++;
+            esperado++;
+        }
+        std::cout << "Pacotes recebidos corretamente: " << pacotesRecebidos << "\n";
+        std::cout << "Pacotes perdidos: " << pacotesPerdidos << "\n";
+        std::cout << "Pacotes fora de ordem: " << pacotesForaDeOrdem << "\n";
     }
 
     close(sock_escuta);
