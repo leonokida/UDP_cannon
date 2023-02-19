@@ -82,6 +82,8 @@ int main(int argc, char *argv[]) {
 
         // Primeiro caso: pacote(s) perdido(s)
         if (recebido > esperado) {
+            // O pacote que foi recebido veio fora de ordem (recebido antes dos perdidos serem recebidos)
+            pacotesForaDeOrdem++;
 
             if (recebido - esperado > 1)
                 std::cout << "Foram perdidos os pacotes de " << esperado << " a " << recebido - 1 << "\n";
