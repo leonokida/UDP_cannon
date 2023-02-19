@@ -25,6 +25,8 @@ int main(int argc, char *argv[]) {
     struct hostent *hp;
     char localhost[MAXHOSTNAME];
 
+    std::cout << "Iniciando execução do servidor\n";
+
     if (argc != 2) {
         std::cerr << "Uso correto: servidor <porta>\n";
         exit(1);
@@ -37,6 +39,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    std::cout << "Consegui meu próprio endereço IP\n";
+
     sa.sin_port = htons(atoi(argv[1]));
 
     bcopy((char *)hp->h_addr, (char *)&sa.sin_addr, hp->h_length);
@@ -48,10 +52,16 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    std::cout << "Consegui abrir o socket\n";
+
     if (bind(sock_escuta, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
         std::cerr << "Não consegui fazer o bind\n";
         exit(1);
     }
+
+    std::cout << "Consegui fazer o bind\n";
+    std::cout << "Pronto para receber mensagens\n";
+
     // Número de sequência esperado
     unsigned int esperado = 0;
     // Pacotes perdidos
@@ -84,6 +94,7 @@ int main(int argc, char *argv[]) {
         if (recebido > esperado) {
             // O pacote que foi recebido veio fora de ordem (recebido antes dos perdidos serem recebidos)
             pacotesForaDeOrdem++;
+            std::cout << "O pacote " << recebido << " veio fora de ordem\n";
 
             if (recebido - esperado > 1)
                 std::cout << "Foram perdidos os pacotes de " << esperado << " a " << recebido - 1 << "\n";
@@ -117,8 +128,8 @@ int main(int argc, char *argv[]) {
         }
 
         std::cout << "Quantidade estimada de pacotes enviados: " << pacotesTotais << ", ";
-        std::cout << "Pacotes perdidos: " << pacotesPerdidos << ", ";
-        std::cout << "Pacotes fora de ordem: " << pacotesForaDeOrdem << "\n";
+        std::cout << "Quantidade estimada de pacotes perdidos: " << pacotesPerdidos << ", ";
+        std::cout << "Quantidade estimada de pacotes fora de ordem: " << pacotesForaDeOrdem << "\n";
         double taxa = (double)pacotesPerdidos / ((double)pacotesTotais) * 100;
         std::cout << "Taxa estimada de perda: " << taxa << "%\n";
         std::cout << "###############################\n";

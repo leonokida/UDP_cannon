@@ -20,6 +20,8 @@ int main(int argc, char *argv[]) {
     struct hostent *hp;
     char *host;
 
+    std::cout << "Iniciando execução do cliente\n";
+
     if (argc != 3) {
         std::cerr << "Uso correto: cliente <nome-servidor> <porta>\n";
         exit(1);
@@ -32,6 +34,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    std::cout << "Consegui obter o endereço IP do servidor\n";
+
     bcopy((char *)hp->h_addr, (char *)&sa.sin_addr, hp->h_length);
     sa.sin_family = hp->h_addrtype;
 
@@ -42,6 +46,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    std::cout << "Consegui abrir o socket\n";
+    std::cout << "Enviando mensagens\n";
+
+    // Envia mensagens com número de sequência de 0 até o máximo suportado pelo tipo unsigned int
     for (unsigned int i = 0; i <= 4294967295; i++) {
         std::string dadosStr = std::to_string(i);
         const char * dados = dadosStr.c_str();
@@ -56,6 +64,9 @@ int main(int argc, char *argv[]) {
         //sleep(0.5);
         //sleep(0.005);
     }
+
+    std::cout << "Atingi o número máximo de mensagens\n";
+    std::cout << "Encerrando execução\n";
 
     close(sockdescr);
 
