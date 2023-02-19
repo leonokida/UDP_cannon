@@ -41,22 +41,23 @@ int main(int argc, char *argv[]) {
 
     sa.sin_port = htons(atoi(argv[2])); // faz a conversão little endian -> big endian
 
-    if ((sockdescr = socket(hp->h_addrtype, SOCK_STREAM, 0)) < 0) {
+    if ((sockdescr = socket(hp->h_addrtype, SOCK_DGRAM, 0)) < 0) {
         std::cerr << "Não consegui abrir o socket\n";
         exit(1);
     }
 
-    if (connect(sockdescr, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
-        std::cerr << "Não consegui conectar ao servidor\n";
-        exit(1);
-    }
-
-    if (write(sockdescr, dados, strlen(dados)) < 0) {
+    if (sendto(sockdescr, dados, strlen(dados), 0, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
         std::cerr << "Não consegui fazer a transmissão \n";
         exit(1);
     }
 
-    read(sockdescr, buf, BUFSIZ);
+    socklen_t slen = sizeof(sa);
+    if ((numbytesrecv = recvfrom(sockdescr, buf, BUFSIZ, 0, (struct sockaddr *) &sa, &slen)) < 0) {
+        std::cerr << "Não consegui receber a resposta \n";
+        exit(1);
+    }
+
+    buf[numbytesrecv] = '\0';
     std::cout << "Cliente recebeu: " << buf << "\n";
 
     close(sockdescr);

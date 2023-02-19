@@ -18,8 +18,7 @@ Ultima atualizacao: 18/02/2023
 #define MAXHOSTNAME 30
 
 int main(int argc, char *argv[]) {
-    int sock_escuta, sock_atende;
-    int i;
+    int sock_escuta;
     char buf[BUFSIZ + 1];
     struct sockaddr_in sa, isa;
     struct hostent *hp;
@@ -43,7 +42,7 @@ int main(int argc, char *argv[]) {
 
     sa.sin_family = hp->h_addrtype;
 
-    if ((sock_escuta = socket(hp->h_addrtype, SOCK_STREAM, 0)) < 0) {
+    if ((sock_escuta = socket(hp->h_addrtype, SOCK_DGRAM, 0)) < 0) {
         std::cerr << "Não consegui abrir o socket\n";
         exit(1);
     }
@@ -53,21 +52,16 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    listen(sock_escuta, TAMFILA);
-
-    while (1) {
-        i = sizeof(sa);
-        if ((sock_atende = accept(sock_escuta, (struct sockaddr *) &isa, (socklen_t *)&i)) < 0) {
-            std::cerr << "Não consegui aceitar a conexão\n";
+    while (true) {
+        socklen_t isa_len = sizeof(isa);
+        if (recvfrom(sock_escuta, buf, BUFSIZ, 0, (struct sockaddr *)&isa, &isa_len) < 0) {
+            std::cerr << "Não consegui receber a mensagem\n";
             exit(1);
         }
-
-        read(sock_atende, buf, BUFSIZ);
         std::cout << "Sou o servidor, recebi " << buf << "\n";
-        write(sock_atende, buf, BUFSIZ);
-
-        close(sock_atende);
+        sendto(sock_escuta, buf, BUFSIZ, 0, (struct sockaddr *)&isa, isa_len);
     }
 
+    close(sock_escuta);
     exit(0);
 }
