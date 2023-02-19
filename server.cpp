@@ -1,7 +1,7 @@
 /*
 O servidor do canhão UDP, recebe mensagens e estima erros, além de detectar mensagens fora de ordem.
-Autor: Leon Augusto Okida Gonçalves / Guilherme Carbonari Boneti
-Ultima atualizacao: 18/02/2023
+Autores: Leon Augusto Okida Goncalves / Guilherme Carbonari Boneti
+Ultima atualizacao: 19/02/2023
 */
 
 #include <iostream>
@@ -52,41 +52,74 @@ int main(int argc, char *argv[]) {
         std::cerr << "Não consegui fazer o bind\n";
         exit(1);
     }
+    // Número de sequência esperado
     unsigned int esperado = 0;
-    int pacotesRecebidos = 0;
+    // Pacotes perdidos
     int pacotesPerdidos = 0;
+    // Pacotes que vieram fora de ordem
     int pacotesForaDeOrdem = 0;
+    // Estima quantidade total de pacotes
+    int pacotesTotais = 0;
+    // Lista que armazena valores perdidos
     std::list<unsigned int> perdidos;
 
     while (true) {
         memset(buf, 0, BUFSIZ+1);
         socklen_t isa_len = sizeof(isa);
+
+        // Recebe pacote com número de sequência
         if (recvfrom(sock_escuta, buf, BUFSIZ, 0, (struct sockaddr *)&isa, &isa_len) < 0) {
             std::cerr << "Não consegui receber a mensagem\n";
             exit(1);
         }
+        // Recebeu mais um pacote
+        pacotesTotais++;
+        std::cout << "\n###############################\n";
+
+        // Extrai número de sequência
         unsigned int recebido = atoi(buf);
-        if (recebido != esperado) {
-            if (std::find(perdidos.begin(), perdidos.end(), recebido) != perdidos.end()) {
-                perdidos.remove(esperado);
-                pacotesPerdidos--;
-                pacotesForaDeOrdem++;
-            }
-            else {
-                for (int i = esperado; i < recebido; i++) {
-                    perdidos.push_back(i);
-                    pacotesPerdidos++;
-                }
+        std::cout << "Esperado: " << esperado << ", Recebido: " << recebido << "\n";
+
+        // Primeiro caso: pacote(s) perdido(s)
+        if (recebido > esperado) {
+
+            if (recebido - esperado > 1)
+                std::cout << "Foram perdidos os pacotes de " << esperado << " a " << recebido - 1 << "\n";
+            else
+                std::cout << "Foi perdido o pacote " << esperado << "\n";
+
+            for (unsigned int i = esperado; i < recebido; i++) {
+                perdidos.push_back(i);
+                // Adiciona à quantidade de pacotes perdidos
+                pacotesPerdidos++;
+                // Adiciona à quantidade total de pacotes
+                pacotesTotais++;
             }
             esperado = recebido + 1;
         }
+        // Segundo caso: pacote repetido ou fora de ordem
+        if (recebido < esperado) {
+            // Se estiver na lista de perdidos, significa que veio fora de ordem
+            if (std::find(perdidos.begin(), perdidos.end(), recebido) != perdidos.end()) {
+                std::cout << "O pacote " << recebido << " veio fora de ordem\n";
+                perdidos.remove(recebido);
+                pacotesForaDeOrdem++;
+                // Pacote não está mais perdido
+                pacotesPerdidos--;
+            }
+        }
+        // Terceiro caso: recebido corretamente
         else {
-            pacotesRecebidos++;
+            std::cout << "O pacote " << recebido << " veio corretamente\n";
             esperado++;
         }
-        std::cout << "Pacotes recebidos corretamente: " << pacotesRecebidos << "\n";
-        std::cout << "Pacotes perdidos: " << pacotesPerdidos << "\n";
+
+        std::cout << "Quantidade estimada de pacotes enviados: " << pacotesTotais << ", ";
+        std::cout << "Pacotes perdidos: " << pacotesPerdidos << ", ";
         std::cout << "Pacotes fora de ordem: " << pacotesForaDeOrdem << "\n";
+        double taxa = (double)pacotesPerdidos / ((double)pacotesTotais) * 100;
+        std::cout << "Taxa estimada de perda: " << taxa << "%\n";
+        std::cout << "###############################\n";
     }
 
     close(sock_escuta);

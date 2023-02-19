@@ -1,7 +1,7 @@
 /*
 O cliente do canhão UDP, envia mensagens com número de sequência.
-Autor: Leon Augusto Okida Gonçalves / Guilherme Carbonari Boneti
-Ultima atualizacao: 18/02/2023
+Autores: Leon Augusto Okida Goncalves / Guilherme Carbonari Boneti
+Ultima atualizacao: 19/02/2023
 */
 
 #include <iostream>
@@ -16,14 +16,12 @@ Ultima atualizacao: 18/02/2023
 
 int main(int argc, char *argv[]) {
     int sockdescr;
-    int numbytesrecv;
     struct sockaddr_in sa;
     struct hostent *hp;
-    char buf[BUFSIZ+1];
     char *host;
 
     if (argc != 3) {
-        std::cerr << "Uso correto: cliente <nome-servidor> <porta> <dados>\n";
+        std::cerr << "Uso correto: cliente <nome-servidor> <porta>\n";
         exit(1);
     }
 
@@ -52,6 +50,11 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
         std::cout << "Enviando pacote " << i << "\n";
+
+        // Sleep usado em testes (reduz a taxa de pacotes perdidos)
+        //sleep(1);
+        //sleep(0.5);
+        //sleep(0.005);
     }
 
     close(sockdescr);
