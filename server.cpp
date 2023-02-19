@@ -1,46 +1,73 @@
+/*
+O servidor do canhão UDP, recebe mensagens e estima erros, além de detectar mensagens fora de ordem.
+Autor: Leon Augusto Okida Gonçalves / Guilherme Carbonari Boneti
+Ultima atualizacao: 18/02/2023
+*/
+
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <stdio.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <unistd.h>
+#include <netdb.h> // sistema DNS
+
+#define TAMFILA 5
+#define MAXHOSTNAME 30
 
 int main(int argc, char *argv[]) {
-    // Create a UDP socket
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        std::cerr << "Error creating socket" << std::endl;
-        return 1;
+    int sock_escuta, sock_atende;
+    int i;
+    char buf[BUFSIZ + 1];
+    struct sockaddr_in sa, isa;
+    struct hostent *hp;
+    char localhost[MAXHOSTNAME];
+
+    if (argc != 2) {
+        std::cerr << "Uso correto: servidor <porta>\n";
+        exit(1);
     }
 
-    // Bind the socket to a local address and port
-    struct sockaddr_in server_address;
-    std::memset(&server_address, 0, sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_address.sin_port = htons(1234);
-    if (bind(sock, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-        std::cerr << "Error binding socket" << std::endl;
-        return 1;
+    gethostname(localhost, MAXHOSTNAME);
+
+    if ((hp = gethostbyname(localhost)) == NULL) {
+        std::cerr << "Não consegui meu próprio endereço IP\n";
+        exit(1);
     }
 
-    // Receive messages and print them to the console
-    char buffer[1024];
-    struct sockaddr_in client_address;
-    socklen_t client_address_len = sizeof(client_address);
-    while (true) {
-        std::memset(buffer, 0, sizeof(buffer));
-        int bytes_received = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_address, &client_address_len);
-        if (bytes_received < 0) {
-            std::cerr << "Error receiving message" << std::endl;
-            continue;
+    sa.sin_port = htons(atoi(argv[1]));
+
+    bcopy((char *)hp->h_addr, (char *)&sa.sin_addr, hp->h_length);
+
+    sa.sin_family = hp->h_addrtype;
+
+    if ((sock_escuta = socket(hp->h_addrtype, SOCK_STREAM, 0)) < 0) {
+        std::cerr << "Não consegui abrir o socket\n";
+        exit(1);
+    }
+
+    if (bind(sock_escuta, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+        std::cerr << "Não consegui fazer o bind\n";
+        exit(1);
+    }
+
+    listen(sock_escuta, TAMFILA);
+
+    while (1) {
+        i = sizeof(sa);
+        if ((sock_atende = accept(sock_escuta, (struct sockaddr *) &isa, (socklen_t *)&i)) < 0) {
+            std::cerr << "Não consegui aceitar a conexão\n";
+            exit(1);
         }
-        std::string message(buffer, bytes_received);
-        std::cout << "Received message from " << inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << " - " << message << std::endl;
+
+        read(sock_atende, buf, BUFSIZ);
+        std::cout << "Sou o servidor, recebi " << buf << "\n";
+        write(sock_atende, buf, BUFSIZ);
+
+        close(sock_atende);
     }
 
-    // Close the socket
-    close(sock);
-
-    return 0;
+    exit(0);
 }
