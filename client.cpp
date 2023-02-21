@@ -65,8 +65,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Foram enviadas todas as mensagens\n";
     std::cout << "Enviando fim de transmissão\n";
 
-    // Espera 1 segundo antes de enviar fim de transmissão (para dar tempo para o servidor tratar mensagens recebidas)
-    sleep(1);
+    // Espera 10 segundos antes de enviar fim de transmissão (para dar tempo para o servidor tratar mensagens recebidas)
+    sleep(10);
 
     bool ack = false;
     char buf[BUFSIZ + 1];
