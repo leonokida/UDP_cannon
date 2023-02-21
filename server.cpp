@@ -15,6 +15,8 @@ Ultima atualizacao: 21/02/2023
 #include <netdb.h> // sistema DNS
 #include <list>
 #include <algorithm>
+#include <iostream>
+#include <fstream>
 
 #define MAXHOSTNAME 30
 
@@ -109,6 +111,10 @@ int main(int argc, char *argv[]) {
     close(sock_escuta);
 
     // Inicia processamento das mensagens recebidas
+    std::cout << "Iniciando análise das mensagens recebidas\n";
+
+    // Abre arquivo de log
+    std::ofstream log("log.txt");
 
     // Indica a mensagem que deveria ter sido recebida
     unsigned int esperado = 0;
@@ -121,18 +127,18 @@ int main(int argc, char *argv[]) {
 
     std::list<unsigned int>::iterator it;
     for (it = recebidos.begin(); it != recebidos.end(); ++it){
-        std::cout << "*******************************************\n";
-        std::cout << "* Esperado: " << esperado << ", Recebido: " << *it << "\n";
+        log << "*******************************************\n";
+        log << "* Esperado: " << esperado << ", Recebido: " << *it << "\n";
 
         // Pacote veio igual ao esperado
         if (*it == esperado) {
-            std::cout << "* Pacote " << *it << " recebido era esperado\n";
+            log << "* Pacote " << *it << " recebido era esperado\n";
             esperado++;
         }
         // Pacote menor que o esperado (repetido ou fora de ordem)
         else if (*it < esperado) {
             if (std::find(perdidos.begin(), perdidos.end(), *it) != perdidos.end()) {
-                std::cout << "* Pacote " << *it << " veio fora de ordem\n";
+                log << "* Pacote " << *it << " veio fora de ordem\n";
                 perdidos.remove(*it);
                 mensagensForaDeOrdem++;
             }
@@ -140,20 +146,23 @@ int main(int argc, char *argv[]) {
         // Pacote maior que o esperado (pode ter tido perdas)
         else {
             if (*it - esperado > 1)
-                std::cout << "* Foram perdidos os pacotes de " << esperado << " a " << *it - 1 << "\n";
+                log << "* Foram perdidos os pacotes de " << esperado << " a " << *it - 1 << "\n";
             else
-                std::cout << "* Foi perdido o pacote " << esperado << "\n";
+                log << "* Foi perdido o pacote " << esperado << "\n";
 
             for (unsigned int i = esperado; i < *it; i++)
                 perdidos.push_back(i);
             
             esperado = *it + 1;
         }
-        std::cout << "*******************************************\n\n";
+        log << "*******************************************\n\n";
     }
 
-    std::cout << "Pacotes recebidos: " << recebidos.size() << ", Pacotes perdidos: " << perdidos.size() << ", Pacotes fora de ordem: " << mensagensForaDeOrdem << "\n";
-    std::cout << "Taxa estimada de perdas: " <<  (double)perdidos.size()/(double)recebidos.size() * 100 << "%\n";
+    log << "Pacotes recebidos: " << recebidos.size() << ", Pacotes perdidos: " << perdidos.size() << ", Pacotes fora de ordem: " << mensagensForaDeOrdem << "\n";
+    log << "Taxa estimada de perdas: " <<  (double)perdidos.size()/(double)recebidos.size() * 100 << "%\n";
+
+    log.close();
+    std::cout << "Resultados disponíveis em log.txt\n";
 
     exit(0);
 }
