@@ -1,7 +1,7 @@
 /*
 O cliente do canhão UDP, envia mensagens com número de sequência.
 Autores: Leon Augusto Okida Goncalves / Guilherme Carbonari Boneti
-Ultima atualizacao: 19/02/2023
+Ultima atualizacao: 21/02/2023
 */
 
 #include <iostream>
@@ -19,15 +19,17 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in sa;
     struct hostent *hp;
     char *host;
+    unsigned int numMsgs;
 
     std::cout << "Iniciando execução do cliente\n";
 
-    if (argc != 3) {
-        std::cerr << "Uso correto: cliente <nome-servidor> <porta>\n";
+    if (argc != 4) {
+        std::cerr << "Uso correto: cliente <nome-servidor> <porta> <numero-pacotes>\n";
         exit(1);
     }
 
     host = argv[1];
+    numMsgs = atoi(argv[3]);
 
     if ((hp = gethostbyname(host)) == NULL) {
         std::cerr << "Não consegui obter o endereço IP do servidor\n";
@@ -50,22 +52,43 @@ int main(int argc, char *argv[]) {
     std::cout << "Enviando mensagens\n";
 
     // Envia mensagens com número de sequência de 0 até o máximo suportado pelo tipo unsigned int
-    for (unsigned int i = 0; i <= 4294967295; i++) {
+    for (unsigned int i = 0; i < numMsgs; i++) {
         std::string dadosStr = std::to_string(i);
+        dadosStr = dadosStr + "-";
+        const char * dados = dadosStr.c_str();
+        std::cout << "Enviando pacote " << i << "\n";
+        if (sendto(sockdescr, dados, strlen(dados), 0, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+            std::cerr << "Não consegui fazer a transmissão \n";
+            exit(1);
+        }
+    }
+    std::cout << "Foram enviadas todas as mensagens\n";
+    std::cout << "Enviando fim de transmissão\n";
+
+    // Espera 1 segundo antes de enviar fim de transmissão (para dar tempo para o servidor tratar mensagens recebidas)
+    sleep(1);
+
+    bool ack = false;
+    char buf[BUFSIZ + 1];
+    while (!ack) {
+        // Envia fim de transmissão
+        std::string dadosStr = "FIN";
         const char * dados = dadosStr.c_str();
         if (sendto(sockdescr, dados, strlen(dados), 0, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
             std::cerr << "Não consegui fazer a transmissão \n";
             exit(1);
         }
-        std::cout << "Enviando pacote " << i << "\n";
+        // Recebe ACK
+        socklen_t sa_len = sizeof(sa);
+        if (recvfrom(sockdescr, buf, BUFSIZ, 0, (struct sockaddr *)&sa, &sa_len) < 0) {
+            std::cerr << "Não consegui receber a mensagem\n";
+            exit(1);
+        }
 
-        // Sleep usado em testes (reduz a taxa de pacotes perdidos)
-        //sleep(1);
-        //sleep(0.5);
-        //sleep(0.005);
+        if ((strcmp(buf, "ACK")) == 0)
+            ack = true;
     }
 
-    std::cout << "Atingi o número máximo de mensagens\n";
     std::cout << "Encerrando execução\n";
 
     close(sockdescr);
