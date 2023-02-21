@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
     }
 
     log << "Pacotes recebidos: " << recebidos.size() << ", Pacotes perdidos: " << perdidos.size() << ", Pacotes fora de ordem: " << mensagensForaDeOrdem << "\n";
-    log << "Taxa estimada de perdas: " <<  (double)perdidos.size()/(double)recebidos.size() * 100 << "%\n";
+    log << "Taxa estimada de perdas: " <<  (double)perdidos.size()/((double)recebidos.size()+(double)perdidos.size()) * 100 << "%\n";
 
     log.close();
     std::cout << "Resultados disponíveis em log.txt\n";
